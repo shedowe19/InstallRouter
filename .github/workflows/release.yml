@@ -23,11 +23,11 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore InstallRouter/InstallRouter.csproj
+      run: dotnet restore ./InstallRouter.csproj
 
     - name: Build & Publish (Single File)
       run: |
-        dotnet publish InstallRouter/InstallRouter.csproj `
+        dotnet publish ./InstallRouter.csproj `
           -c Release `
           -r win-x64 `
           --self-contained false `
