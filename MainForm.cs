@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows.Forms;
 
 namespace InstallRouter
@@ -793,6 +795,9 @@ namespace InstallRouter
         // ── Zentrales Finalisieren (Admin): Kill, Move, Symlink ─────────────
         private async Task<bool> FinalizeInstallation(string installSource, string targetPath)
         {
+            // Netzwerk-Laufwerke (wie U:) in Administrator-Powershell oft unsichtbar -> UNC-Pfad auflösen
+            targetPath = GetUncPath(targetPath);
+
             Log($"Schritt 3 & 4: Beende Programme, verschiebe Ordner und erstelle Symlink...", Color.Cyan);
             Log($"   (PowerShell fordert jetzt Admin-Rechte an!)", Color.Yellow);
 
@@ -927,6 +932,28 @@ if ($LASTEXITCODE -ne 0) {{ exit 2 }}
         {
             try { return Directory.GetFiles(dir, "*.exe", SearchOption.TopDirectoryOnly).FirstOrDefault() ?? Directory.GetFiles(dir, "*.exe", SearchOption.AllDirectories).FirstOrDefault(); }
             catch { try { return Directory.GetFiles(dir, "*.exe", SearchOption.TopDirectoryOnly).FirstOrDefault(); } catch { return null; } }
+        }
+
+        [DllImport("mpr.dll")]
+        private static extern int WNetGetConnection(string localName, StringBuilder remoteName, ref int length);
+
+        private static string GetUncPath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || path.Length < 2 || path[1] != ':')
+                return path;
+
+            string drive = path.Substring(0, 2);
+            var sb = new StringBuilder(512);
+            int size = sb.Capacity;
+            int error = WNetGetConnection(drive, sb, ref size);
+
+            if (error == 0) // ERROR_SUCCESS
+            {
+                string unc = sb.ToString().TrimEnd('\\');
+                string remainder = path.Substring(2);
+                return unc + remainder;
+            }
+            return path;
         }
     }
 }
