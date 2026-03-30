@@ -52,13 +52,21 @@ namespace InstallRouter
                 Height    = 70,
                 BackColor = Color.FromArgb(2, 6, 23) // slate-950
             };
+            var flowHeader = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(20, 16, 0, 0),
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                AutoSize = false
+            };
             lblTitle = new Label
             {
                 Text      = "⚡ InstallRouter",
                 ForeColor = Color.FromArgb(56, 189, 248), // sky-400 (sattes Neon-Blau)
                 Font      = new Font("Segoe UI Semibold", 20f),
                 AutoSize  = true,
-                Location  = new Point(20, 16)
+                Margin    = new Padding(0, 0, 15, 0)
             };
             var lblSub = new Label
             {
@@ -66,10 +74,11 @@ namespace InstallRouter
                 ForeColor = Color.FromArgb(100, 116, 139), // slate-500
                 Font      = new Font("Segoe UI", 9.5f),
                 AutoSize  = true,
-                Location  = new Point(230, 26)
+                Margin    = new Padding(0, 12, 0, 0) // Align to the text baseline
             };
-            pnlHeader.Controls.Add(lblTitle);
-            pnlHeader.Controls.Add(lblSub);
+            flowHeader.Controls.Add(lblTitle);
+            flowHeader.Controls.Add(lblSub);
+            pnlHeader.Controls.Add(flowHeader);
             // pnlHeader wird ZULETZT hinzugefügt (nach pnl + statusStrip), damit Docking korrekt funktioniert
 
             // ── Haupt-Panel ───────────────────────────────────────────────────
@@ -78,14 +87,20 @@ namespace InstallRouter
                 Dock        = DockStyle.Fill,
                 Padding     = new Padding(24, 20, 24, 16),
                 ColumnCount = 3,
-                RowCount    = 6,
+                RowCount    = 7,
                 AutoSize    = false
             };
             pnl.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 160));
             pnl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            pnl.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
-            for (int i = 0; i < 6; i++)
-                pnl.RowStyles.Add(new RowStyle(SizeType.Absolute, i == 5 ? 120 : 42));
+            pnl.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130)); // Etwas breiter für "Durchsuchen"
+            
+            pnl.RowStyles.Add(new RowStyle(SizeType.Absolute, 42)); // 0: Installer
+            pnl.RowStyles.Add(new RowStyle(SizeType.Absolute, 42)); // 1: Target
+            pnl.RowStyles.Add(new RowStyle(SizeType.Absolute, 42)); // 2: Args
+            pnl.RowStyles.Add(new RowStyle(SizeType.Absolute, 36)); // 3: Checkbox
+            pnl.RowStyles.Add(new RowStyle(SizeType.Absolute, 46)); // 4: Start Button
+            pnl.RowStyles.Add(new RowStyle(SizeType.Absolute, 36)); // 5: Log Header
+            pnl.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // 6: Log Textbox
 
             // Zeile 0: Installer-Datei
             lblInstaller = MakeLabel("Installer (.exe/.msi):");
@@ -113,11 +128,12 @@ namespace InstallRouter
             pnl.Controls.Add(txtArgs,  1, 2);
             pnl.Controls.Add(new Label(), 2, 2);
 
-            // Zeile 3: Checkboxen + Start-Button
-            var chkPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, AutoSize = false };
+            // Zeile 3: Checkbox
             chkSilent  = new CheckBox { Text = "Möglichst lautlos installieren (/S, /silent, /q)", AutoSize = true, Checked = false, Margin = new Padding(0, 8, 0, 0) };
-            chkPanel.Controls.Add(chkSilent);
+            pnl.Controls.Add(chkSilent, 1, 3);
+            pnl.SetColumnSpan(chkSilent, 2);
             
+            // Zeile 4: Start-Button
             btnStart = new Button
             {
                 Text      = "▶  INSTALLATION STARTEN",
@@ -134,11 +150,10 @@ namespace InstallRouter
             btnStart.MouseLeave += (s, e) => { if (btnStart.Enabled) btnStart.BackColor = Color.FromArgb(79, 70, 229); };
             btnStart.Click += BtnStart_Click;
             
-            pnl.Controls.Add(chkPanel, 0, 3);
-            pnl.SetColumnSpan(chkPanel, 2);
-            pnl.Controls.Add(btnStart, 2, 3);
+            pnl.Controls.Add(btnStart, 1, 4);
+            pnl.SetColumnSpan(btnStart, 2);
 
-            // Zeile 4: Log-Header + "Installer fertig"-Knopf
+            // Zeile 5: Log-Header + "Installer fertig"-Knopf
             var lblLogHeader = MakeLabel("Aktivitäts-Protokoll:");
             lblLogHeader.Font = new Font("Segoe UI Semibold", 9.5f);
             
@@ -165,11 +180,10 @@ namespace InstallRouter
                 Log("   ► Manuell signalisiert: Installer fertig.", Color.FromArgb(52, 211, 153));
             };
             
-            pnl.Controls.Add(lblLogHeader, 0, 4);
-            pnl.Controls.Add(btnDone,      1, 4);
-            pnl.Controls.Add(new Label(),  2, 4);
+            pnl.Controls.Add(lblLogHeader, 0, 5);
+            pnl.Controls.Add(btnDone,      2, 5); // Right aligned directly over the scrollbar
 
-            // Zeile 5: Log-Box
+            // Zeile 6: Log-Box
             rtbLog = new RichTextBox
             {
                 Dock        = DockStyle.Fill,
@@ -180,7 +194,7 @@ namespace InstallRouter
                 BorderStyle = BorderStyle.None,
                 Margin      = new Padding(0, 4, 0, 0)
             };
-            pnl.Controls.Add(rtbLog, 0, 5);
+            pnl.Controls.Add(rtbLog, 0, 6);
             pnl.SetColumnSpan(rtbLog, 3);
 
             // ── Status-Leiste ─────────────────────────────────────────────────
