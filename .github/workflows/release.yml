@@ -38,22 +38,22 @@ jobs:
           -o ./publish
 
     - name: Generate Commit Changelog
+      shell: bash
       run: |
-        # Versuche das vorherige Tag zu finden
-        $prevTag = git describe --tags --abbrev=0 HEAD^ 2>$null
-        if ([string]::IsNullOrEmpty($prevTag)) {
-            $log = git log --pretty=format:"* %s (%h)"
-        } else {
-            $log = git log "$prevTag..HEAD" --pretty=format:"* %s (%h)"
-        }
-        "### Änderungen in dieser Version:`n" | Out-File -FilePath release_notes.md -Encoding utf8
-        $log | Out-File -FilePath release_notes.md -Encoding utf8 -Append
+        prevTag=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        echo "### ✨ Änderungen in dieser Version:" > release_notes.md
+        echo "" >> release_notes.md
+        if [ -z "$prevTag" ]; then
+            git log --pretty=format:"- %s (%h)" >> release_notes.md
+        else
+            git log "$prevTag..HEAD" --pretty=format:"- %s (%h)" >> release_notes.md
+        fi
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          ./publish/InstallRouter.exe
+          publish/InstallRouter.exe
         body_path: release_notes.md
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
