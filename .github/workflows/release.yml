@@ -16,6 +16,8 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Setup .NET 8.0
       uses: actions/setup-dotnet@v4
@@ -35,15 +37,23 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true `
           -o ./publish
 
-    - name: Compress Release Archive
-      run: Compress-Archive -Path ./publish/* -DestinationPath ./InstallRouter.zip
+    - name: Generate Commit Changelog
+      run: |
+        # Versuche das vorherige Tag zu finden
+        $prevTag = git describe --tags --abbrev=0 HEAD^ 2>$null
+        if ([string]::IsNullOrEmpty($prevTag)) {
+            $log = git log --pretty=format:"* %s (%h)"
+        } else {
+            $log = git log "$prevTag..HEAD" --pretty=format:"* %s (%h)"
+        }
+        "### Änderungen in dieser Version:`n" | Out-File -FilePath release_notes.md -Encoding utf8
+        $log | Out-File -FilePath release_notes.md -Encoding utf8 -Append
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          ./InstallRouter.zip
           ./publish/InstallRouter.exe
-        generate_release_notes: true
+        body_path: release_notes.md
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
