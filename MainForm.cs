@@ -512,7 +512,7 @@ namespace InstallRouter
             Log($"Aufruf: {installerPath} {arguments}");
 
             await RunProcess(installerPath, arguments,
-                Path.GetDirectoryName(installerPath) ?? "", elevated: true);
+                Path.GetDirectoryName(installerPath) ?? "", elevated: false);
 
             // Auf "Installer fertig"-Klick warten (max 10 Minuten)
             var deadline = DateTime.Now.AddMinutes(10);
