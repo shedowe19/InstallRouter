@@ -37,49 +37,59 @@ namespace InstallRouter
         private void InitializeUI()
         {
             this.Text            = "InstallRouter  –  Installer-Pfad umleiten";
-            this.Size            = new Size(680, 560);
-            this.MinimumSize     = new Size(620, 500);
+            this.Size            = new Size(740, 620);
+            this.MinimumSize     = new Size(680, 520);
             this.StartPosition   = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.Sizable;
-            this.BackColor       = Color.FromArgb(245, 245, 248);
-            this.Font            = new Font("Segoe UI", 9f);
+            this.BackColor       = Color.FromArgb(15, 23, 42);   // slate-900 tiefer Dunkelmodus
+            this.ForeColor       = Color.FromArgb(241, 245, 249); // slate-50
+            this.Font            = new Font("Segoe UI", 9.5f);
 
             // ── Titel-Banner ──────────────────────────────────────────────────
             var pnlHeader = new Panel
             {
                 Dock      = DockStyle.Top,
-                Height    = 52,
-                BackColor = Color.FromArgb(30, 30, 60)
+                Height    = 70,
+                BackColor = Color.FromArgb(2, 6, 23) // slate-950
             };
             lblTitle = new Label
             {
-                Text      = "⚙  InstallRouter",
-                ForeColor = Color.White,
-                Font      = new Font("Segoe UI", 14f, FontStyle.Bold),
+                Text      = "⚡ InstallRouter",
+                ForeColor = Color.FromArgb(56, 189, 248), // sky-400 (sattes Neon-Blau)
+                Font      = new Font("Segoe UI Semibold", 20f),
                 AutoSize  = true,
-                Location  = new Point(14, 12)
+                Location  = new Point(20, 16)
+            };
+            var lblSub = new Label
+            {
+                Text      = "Bändigt widerspenstige Windows-Installer.",
+                ForeColor = Color.FromArgb(100, 116, 139), // slate-500
+                Font      = new Font("Segoe UI", 9.5f),
+                AutoSize  = true,
+                Location  = new Point(230, 26)
             };
             pnlHeader.Controls.Add(lblTitle);
+            pnlHeader.Controls.Add(lblSub);
             // pnlHeader wird ZULETZT hinzugefügt (nach pnl + statusStrip), damit Docking korrekt funktioniert
 
             // ── Haupt-Panel ───────────────────────────────────────────────────
             var pnl = new TableLayoutPanel
             {
                 Dock        = DockStyle.Fill,
-                Padding     = new Padding(16, 12, 16, 8),
+                Padding     = new Padding(24, 20, 24, 16),
                 ColumnCount = 3,
                 RowCount    = 6,
                 AutoSize    = false
             };
-            pnl.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
+            pnl.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 160));
             pnl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            pnl.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
+            pnl.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
             for (int i = 0; i < 6; i++)
-                pnl.RowStyles.Add(new RowStyle(SizeType.Absolute, i == 5 ? 120 : 36));
+                pnl.RowStyles.Add(new RowStyle(SizeType.Absolute, i == 5 ? 120 : 42));
 
             // Zeile 0: Installer-Datei
             lblInstaller = MakeLabel("Installer (.exe/.msi):");
-            txtInstaller = new TextBox { Dock = DockStyle.Fill, PlaceholderText = "Datei auswählen oder hierher ziehen…" };
+            txtInstaller = MakeTextBox("Datei auswählen oder einfach per Drag & Drop hierher ziehen…");
             txtInstaller.TextChanged += (s, e) => AutoDetectType();
             btnBrowse    = MakeButton("Durchsuchen");
             btnBrowse.Click += BtnBrowse_Click;
@@ -88,8 +98,8 @@ namespace InstallRouter
             pnl.Controls.Add(btnBrowse,     2, 0);
 
             // Zeile 1: Zielpfad
-            lblTarget = MakeLabel("Zielpfad:");
-            txtTarget = new TextBox { Dock = DockStyle.Fill, PlaceholderText = @"z.B.  D:\Programme\MeineApp" };
+            lblTarget = MakeLabel("Wunsch-Zielpfad:");
+            txtTarget = MakeTextBox(@"z.B.  D:\Programme\MeineApp");
             btnTargetBrowse = MakeButton("Auswählen");
             btnTargetBrowse.Click += BtnTargetBrowse_Click;
             pnl.Controls.Add(lblTarget,       0, 1);
@@ -98,51 +108,63 @@ namespace InstallRouter
 
             // Zeile 2: Zusätzliche Argumente
             lblArgs = MakeLabel("Zusatz-Argumente:");
-            txtArgs = new TextBox { Dock = DockStyle.Fill, PlaceholderText = "optional – werden an den Installer-Aufruf angehängt" };
+            txtArgs = MakeTextBox("optional – werden unsichtbar an den Installer drangehängt");
             pnl.Controls.Add(lblArgs,  0, 2);
             pnl.Controls.Add(txtArgs,  1, 2);
             pnl.Controls.Add(new Label(), 2, 2);
 
             // Zeile 3: Checkboxen + Start-Button
             var chkPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, AutoSize = false };
-            chkSilent  = new CheckBox { Text = "Möglichst lautlos installieren (/S, /silent, /q)", AutoSize = true, Checked = false };
+            chkSilent  = new CheckBox { Text = "Möglichst lautlos installieren (/S, /silent, /q)", AutoSize = true, Checked = false, Margin = new Padding(0, 8, 0, 0) };
             chkPanel.Controls.Add(chkSilent);
+            
             btnStart = new Button
             {
-                Text      = "▶  Installieren",
+                Text      = "▶  INSTALLATION STARTEN",
                 Dock      = DockStyle.Fill,
-                BackColor = Color.FromArgb(30, 120, 200),
+                BackColor = Color.FromArgb(79, 70, 229), // indigo-600
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Font      = new Font("Segoe UI", 10f, FontStyle.Bold)
+                Font      = new Font("Segoe UI", 10.5f, FontStyle.Bold),
+                Cursor    = Cursors.Hand,
+                Margin    = new Padding(0, 4, 0, 8)
             };
             btnStart.FlatAppearance.BorderSize = 0;
+            btnStart.MouseEnter += (s, e) => { if (btnStart.Enabled) btnStart.BackColor = Color.FromArgb(99, 102, 241); }; // indigo-500
+            btnStart.MouseLeave += (s, e) => { if (btnStart.Enabled) btnStart.BackColor = Color.FromArgb(79, 70, 229); };
             btnStart.Click += BtnStart_Click;
+            
             pnl.Controls.Add(chkPanel, 0, 3);
             pnl.SetColumnSpan(chkPanel, 2);
             pnl.Controls.Add(btnStart, 2, 3);
 
             // Zeile 4: Log-Header + "Installer fertig"-Knopf
-            var lblLogHeader = MakeLabel("Protokoll:");
-            lblLogHeader.Font = new Font("Segoe UI", 8.5f, FontStyle.Bold);
+            var lblLogHeader = MakeLabel("Aktivitäts-Protokoll:");
+            lblLogHeader.Font = new Font("Segoe UI Semibold", 9.5f);
+            
             btnDone = new Button
             {
-                Text      = "✔  Installer fertig",
+                Text      = "✔  INSTALLER FERTIG",
                 Dock      = DockStyle.Fill,
-                BackColor = Color.FromArgb(40, 160, 80),
+                BackColor = Color.FromArgb(16, 185, 129), // emerald-500
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Font      = new Font("Segoe UI", 8.5f, FontStyle.Bold),
-                Visible   = false   // nur während Squirrel-Installation sichtbar
+                Font      = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                Cursor    = Cursors.Hand,
+                Visible   = false,
+                Margin    = new Padding(0, 4, 0, 8)
             };
             btnDone.FlatAppearance.BorderSize = 0;
+            btnDone.MouseEnter += (s, e) => { if (btnDone.Enabled) btnDone.BackColor = Color.FromArgb(52, 211, 153); }; // emerald-400
+            btnDone.MouseLeave += (s, e) => { if (btnDone.Enabled) btnDone.BackColor = Color.FromArgb(16, 185, 129); };
             btnDone.Click += (s, e) =>
             {
                 _manualDone = true;
                 btnDone.Enabled = false;
                 btnDone.Text    = "✔  Signal gesendet…";
-                Log("   ► Manuell signalisiert: Installer fertig.", Color.LightGreen);
+                Log("   ► Manuell signalisiert: Installer fertig.", Color.FromArgb(52, 211, 153));
             };
+            
             pnl.Controls.Add(lblLogHeader, 0, 4);
             pnl.Controls.Add(btnDone,      1, 4);
             pnl.Controls.Add(new Label(),  2, 4);
@@ -152,21 +174,24 @@ namespace InstallRouter
             {
                 Dock        = DockStyle.Fill,
                 ReadOnly    = true,
-                BackColor   = Color.FromArgb(25, 25, 35),
-                ForeColor   = Color.LightGreen,
-                Font        = new Font("Consolas", 8.5f),
-                BorderStyle = BorderStyle.None
+                BackColor   = Color.FromArgb(2, 6, 23), // slate-950
+                ForeColor   = Color.FromArgb(148, 163, 184), // slate-400
+                Font        = new Font("Consolas", 9.5f),
+                BorderStyle = BorderStyle.None,
+                Margin      = new Padding(0, 4, 0, 0)
             };
             pnl.Controls.Add(rtbLog, 0, 5);
             pnl.SetColumnSpan(rtbLog, 3);
 
             // ── Status-Leiste ─────────────────────────────────────────────────
-            statusStrip = new StatusStrip();
+            statusStrip = new StatusStrip() { BackColor = Color.FromArgb(15, 23, 42), ForeColor = Color.FromArgb(148, 163, 184) };
+            statusStrip.SizingGrip = false;
+            statusStrip.Renderer = new ToolStripProfessionalRenderer(new CustomColorTable());
             lblStatus   = new ToolStripStatusLabel("Bereit.") { Spring = true, TextAlign = ContentAlignment.MiddleLeft };
             var lblBrand = new ToolStripStatusLabel("Powered by Shedowe")
             {
-                ForeColor = Color.FromArgb(130, 130, 160),
-                Font      = new Font("Segoe UI", 8f, FontStyle.Italic),
+                ForeColor = Color.FromArgb(56, 189, 248), // sky-400
+                Font      = new Font("Segoe UI Semibold", 9f),
                 Alignment = ToolStripItemAlignment.Right
             };
             statusStrip.Items.Add(lblStatus);
@@ -192,17 +217,60 @@ namespace InstallRouter
 
         // ── Hilfsmethoden ─────────────────────────────────────────────────────
         private static Label MakeLabel(string text) =>
-            new Label { Text = text, TextAlign = ContentAlignment.MiddleRight, Dock = DockStyle.Fill };
+            new Label { Text = text, TextAlign = ContentAlignment.MiddleRight, Dock = DockStyle.Fill, Margin = new Padding(0, 8, 16, 8) };
 
-        private static Button MakeButton(string text) =>
-            new Button { Text = text, Dock = DockStyle.Fill, FlatStyle = FlatStyle.System };
+        private static TextBox MakeTextBox(string placeholder) =>
+            new TextBox 
+            { 
+                Dock = DockStyle.Fill, 
+                PlaceholderText = placeholder,
+                BackColor = Color.FromArgb(30, 41, 59), // slate-800
+                ForeColor = Color.FromArgb(241, 245, 249), // slate-50
+                BorderStyle = BorderStyle.FixedSingle,
+                Margin = new Padding(0, 8, 16, 8)
+            };
+
+        private static Button MakeButton(string text)
+        {
+            var btn = new Button 
+            { 
+                Text = text, 
+                Dock = DockStyle.Fill, 
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(51, 65, 85), // slate-700
+                ForeColor = Color.White,
+                Cursor = Cursors.Hand,
+                Margin = new Padding(0, 6, 0, 8)
+            };
+            btn.FlatAppearance.BorderSize = 0;
+            btn.MouseEnter += (s, e) => { if (btn.Enabled) btn.BackColor = Color.FromArgb(71, 85, 105); }; // slate-600
+            btn.MouseLeave += (s, e) => { if (btn.Enabled) btn.BackColor = Color.FromArgb(51, 65, 85); };
+            return btn;
+        }
+
+        public class CustomColorTable : ProfessionalColorTable
+        {
+            public override Color ToolStripBorder => Color.Transparent;
+            public override Color StatusStripBorder => Color.Transparent;
+        }
 
         private void Log(string msg, Color? color = null)
         {
             if (rtbLog.InvokeRequired) { rtbLog.Invoke(() => Log(msg, color)); return; }
             rtbLog.SelectionStart  = rtbLog.TextLength;
             rtbLog.SelectionLength = 0;
-            rtbLog.SelectionColor  = color ?? Color.LightGreen;
+            
+            // Map standard colors to more modern equivalents if requested
+            Color finalColor = color ?? Color.FromArgb(186, 230, 253); // sky-200 (Default)
+            if (color == Color.LightGreen) finalColor = Color.FromArgb(52, 211, 153); // emerald-400
+            else if (color == Color.Cyan) finalColor = Color.FromArgb(56, 189, 248); // sky-400
+            else if (color == Color.Orange) finalColor = Color.FromArgb(251, 146, 60); // orange-400
+            else if (color == Color.Red) finalColor = Color.FromArgb(248, 113, 113); // red-400
+            else if (color == Color.Gray) finalColor = Color.FromArgb(148, 163, 184); // slate-400
+            else if (color == Color.Yellow) finalColor = Color.FromArgb(250, 204, 21); // yellow-400
+            else if (color == Color.White) finalColor = Color.FromArgb(241, 245, 249); // slate-50
+            
+            rtbLog.SelectionColor  = finalColor;
             rtbLog.AppendText($"[{DateTime.Now:HH:mm:ss}]  {msg}{Environment.NewLine}");
             rtbLog.ScrollToCaret();
         }
