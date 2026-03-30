@@ -780,7 +780,7 @@ namespace InstallRouter
             {
                 Log("⚠  Keine EXE in den vom Installer beschriebenen Ordnern gefunden.", Color.Orange);
                 Log($"   Bitte manuell in %AppData% oder %LocalAppData% nachsehen.", Color.Yellow);
-                Log($"   Dann Junction erstellen: mklink /J \"<AppOrdner>\" \"{targetPath}\"", Color.Yellow);
+                Log($"   Dann Symlink erstellen über CMD (als Admin): mklink /D \"<AppOrdner>\" \"{targetPath}\"", Color.Yellow);
                 SetStatus("Manuell fortfahren erforderlich.");
                 return;
             }
@@ -826,7 +826,7 @@ Try {{
 }}
 
 # 4. Symlink
-cmd.exe /c mklink /J ""$src"" ""$dst""
+cmd.exe /c mklink /D ""$src"" ""$dst""
 if ($LASTEXITCODE -ne 0) {{ exit 2 }}
 ";
             string b64 = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script));
