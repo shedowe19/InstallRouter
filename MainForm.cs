@@ -23,6 +23,7 @@ namespace InstallRouter
         private Label       lblArgs        = null!;
         private TextBox     txtArgs        = null!;
         private CheckBox    chkSilent      = null!;
+        private CheckBox    chkNetPatch    = null!;
         private Button      btnStart       = null!;
         private Button      btnDone        = null!;   // "Installer fertig"-Knopf
         private volatile bool _manualDone  = false;   // Flag: User hat manuell signalisiert
@@ -132,9 +133,13 @@ namespace InstallRouter
             pnl.Controls.Add(new Label(), 2, 2);
 
             // Zeile 3: Checkbox
-            chkSilent  = new CheckBox { Text = "Möglichst lautlos installieren (/S, /silent, /q)", AutoSize = true, Checked = false, Margin = new Padding(0, 8, 0, 0) };
-            pnl.Controls.Add(chkSilent, 1, 3);
-            pnl.SetColumnSpan(chkSilent, 2);
+            var pnlChecks = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, Margin = new Padding(0, 8, 0, 0) };
+            chkSilent  = new CheckBox { Text = "Möglichst lautlos installieren (/S, /silent, /q)", AutoSize = true, Checked = false };
+            chkNetPatch = new CheckBox { Text = "Chromium Netzwerk-Patch (Sandbox-Fix)", AutoSize = true, Checked = false, Margin = new Padding(20, 0, 0, 0) };
+            pnlChecks.Controls.Add(chkSilent);
+            pnlChecks.Controls.Add(chkNetPatch);
+            pnl.Controls.Add(pnlChecks, 1, 3);
+            pnl.SetColumnSpan(pnlChecks, 2);
             
             // Zeile 4: Start-Button
             btnStart = new Button
@@ -424,6 +429,7 @@ namespace InstallRouter
             var targetPath    = txtTarget.Text.Trim();
             var ext           = Path.GetExtension(installerPath).ToLower();
             var silent        = chkSilent.Checked;
+            var netPatch      = chkNetPatch.Checked;
             var extraArgs     = txtArgs.Text.Trim();
             int selectedType  = DetectExeType(installerPath);
 
@@ -449,20 +455,20 @@ namespace InstallRouter
             // ── Squirrel-Sonderfall ───────────────────────────────────────────
             if (IsSquirrelInstaller(installerPath))
             {
-                await HandleSquirrelInstall(installerPath, targetPath, silent, extraArgs);
+                await HandleSquirrelInstall(installerPath, targetPath, silent, extraArgs, netPatch);
                 btnStart.Enabled = true;
                 return;
             }
 
             // ── Universeller Symlink-Modus ─────────────────────────────────────
-            await HandleSymlinkInstall(installerPath, targetPath, silent, extraArgs, selectedType, ext);
+            await HandleSymlinkInstall(installerPath, targetPath, silent, extraArgs, selectedType, ext, netPatch);
             btnStart.Enabled = true;
             btnStart.Enabled = true;
         }
 
         // ── Universal: Installer starten → EXE-Ort erkennen → Verschieben → Junction ──
         private async Task HandleSymlinkInstall(string installerPath, string targetPath,
-            bool silent, string extraArgs, int selectedType, string ext)
+            bool silent, string extraArgs, int selectedType, string ext, bool netPatch)
         {
             Log("═══ SYMLINK-MODUS ═════════════════════════════════════════════", Color.Cyan);
             Log("   FileSystemWatcher überwacht alle Standard-Installationspfade…", Color.Gray);
@@ -564,7 +570,7 @@ namespace InstallRouter
             if (exeFound != null) Log($"   Haupt-EXE: {Path.GetFileName(exeFound)}", Color.LightGreen);
 
                 // Schritt 3 & 4: Verschieben & Symlink (Elevated!)
-            await FinalizeInstallation(installSource, targetPath);
+            await FinalizeInstallation(installSource, targetPath, netPatch);
             SetStatus("Fertig.");
         }
 
@@ -582,7 +588,7 @@ namespace InstallRouter
         }
 
         // ── Squirrel: Installieren → Verschieben → Symlink ────────────────────
-        private async Task HandleSquirrelInstall(string installerPath, string targetPath, bool silent, string extraArgs)
+        private async Task HandleSquirrelInstall(string installerPath, string targetPath, bool silent, string extraArgs, bool netPatch)
         {
             Log("═══ SQUIRREL-MODUS ════════════════════════════════════════════", Color.Cyan);
             Log("Schritt 1: Normalen Squirrel-Installer ausführen…", Color.Cyan);
@@ -805,13 +811,43 @@ namespace InstallRouter
             }
 
             // Schritt 3 & 4: Verschieben & Symlink (Elevated!)
-            await FinalizeInstallation(squirrelDefaultPath, targetPath);
+            await FinalizeInstallation(squirrelDefaultPath, targetPath, netPatch);
             SetStatus("Fertig.");
         }
 
         // ── Zentrales Finalisieren (Admin): Kill, Move, Symlink ─────────────
-        private async Task<bool> FinalizeInstallation(string installSource, string targetPath)
+        private async Task<bool> FinalizeInstallation(string installSource, string targetPath, bool applyNetPatch)
         {
+            // UNC-Auflösung
+            targetPath = GetUncPath(targetPath);
+            string userDesktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            string userStartMenu = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+            string allUsersDesktop = Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory);
+            string allUsersStartMenu = Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms);
+
+            string patchScript = "";
+            if (applyNetPatch)
+            {
+                patchScript = $@"
+# 5. Chromium Network Sandbox Patch
+$WshShell = New-Object -ComObject WScript.Shell
+$lnkDirs = @('{userDesktop}', '{userStartMenu}', '{allUsersDesktop}', '{allUsersStartMenu}')
+foreach ($dir in $lnkDirs) {{
+    if (Test-Path $dir) {{
+        Get-ChildItem -Path $dir -Filter '*.lnk' -Recurse -ErrorAction SilentlyContinue | ForEach-Object {{
+            $lnk = $WshShell.CreateShortcut($_.FullName)
+            if ($lnk.TargetPath -match [regex]::Escape($src) -or $lnk.TargetPath -match [regex]::Escape($dst)) {{
+                if ($lnk.Arguments -notmatch '--no-sandbox') {{
+                    $lnk.Arguments = ($lnk.Arguments + ' --no-sandbox').Trim()
+                    $lnk.Save()
+                }}
+            }}
+        }}
+    }}
+}}
+";
+            }
+
             // Netzwerk-Laufwerke (wie U:) in Administrator-Powershell oft unsichtbar -> UNC-Pfad auflösen
             targetPath = GetUncPath(targetPath);
 
@@ -850,6 +886,7 @@ Try {{
 # 4. Symlink
 cmd.exe /c mklink /D ""$src"" ""$dst""
 if ($LASTEXITCODE -ne 0) {{ exit 2 }}
+{patchScript}
 ";
             string b64 = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script));
             int exit = await RunProcess("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand {b64}", "", elevated: true);
