@@ -23,6 +23,7 @@ Die Magie von InstallRouter basiert auf automatisiertem Datei-Monitoring und sym
 ## 🛠 Features
 
 - **Netzlaufwerk-Support (UNC)**: Löst via nativer Win32 API (`mpr.dll`) automatisch gemappte Laufwerksbuchstaben auf, sodass die UAC-geschützten Administrator-Skripte problemlos auf Netzlaufwerke zugreifen können.
+- **Chromium Netzwerk-Patch (Sandbox-Fix)**: Für moderne "Web-Apps" auf Electron- oder CEF-Basis (Spotify, Discord, VS Code) bietet die UI eine automatische Patch-Funktion. Findet InstallRouter Startmenü- oder Desktop-Verknüpfungen (Shortcuts / `.lnk`) für diese neu verschobenen Dateien, injiziert das Tool automatisch das Start-Argument `--no-sandbox`. So starten diese Apps absturzfrei, auch wenn sie quer durchs Netzwerk geladen werden!
 - **Symbolic Links (/D)**: Nutzt echte Symlinks anstelle von einfachen NTFS-Junctions, wodurch Umleitungen über verschiedene physikalische oder Netzwerk-Volumes hinweg reibungslos funktionieren.
 - **Modernes Premium User Interface**: Ein wunderschönes Dark Mode UI, gestylt mit modernen TailwindCSS-Farbpaletten (Slate, Emerald, Indigo), fixen Proportionen und einem per Windows-API ("DwmSetWindowAttribute") nativ dunkel gefärbten Windows 11 Fenster-Header.
 - **Auto-Kill für störende Prozesse**: Befreit gesperrte Dateien (wie Treiber oder Tray-Icons), bevor der Ordner verschoben wird.
