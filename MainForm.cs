@@ -39,10 +39,10 @@ namespace InstallRouter
         private void InitializeUI()
         {
             this.Text            = "InstallRouter  –  Installer-Pfad umleiten";
-            this.Size            = new Size(740, 620);
-            this.MinimumSize     = new Size(680, 520);
+            this.Size            = new Size(820, 640);
             this.StartPosition   = FormStartPosition.CenterScreen;
-            this.FormBorderStyle = FormBorderStyle.Sizable;
+            this.FormBorderStyle = FormBorderStyle.FixedSingle;
+            this.MaximizeBox     = false;
             this.BackColor       = Color.FromArgb(15, 23, 42);   // slate-900 tiefer Dunkelmodus
             this.ForeColor       = Color.FromArgb(241, 245, 249); // slate-50
             this.Font            = new Font("Segoe UI", 9.5f);
@@ -229,6 +229,22 @@ namespace InstallRouter
                 var files = (string[])e.Data!.GetData(DataFormats.FileDrop)!;
                 if (files.Length > 0) { txtInstaller.Text = files[0]; AutoDetectType(); }
             };
+        }
+
+        // ── Native Dark Mode Title Bar (Windows 11 / 10) ──────────────────────
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            int useImmersiveDarkMode = 1;
+            // DWMWA_USE_IMMERSIVE_DARK_MODE (20) for Win11+
+            if (DwmSetWindowAttribute(this.Handle, 20, ref useImmersiveDarkMode, sizeof(int)) != 0)
+            {
+                // Fallback for older Win10 builds (19)
+                DwmSetWindowAttribute(this.Handle, 19, ref useImmersiveDarkMode, sizeof(int));
+            }
         }
 
         // ── Hilfsmethoden ─────────────────────────────────────────────────────
