@@ -39,6 +39,7 @@ namespace InstallRouter
         private void InitializeUI()
         {
             this.Text            = "InstallRouter  –  Installer-Pfad umleiten";
+            try { this.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
             this.Size            = new Size(820, 640);
             this.StartPosition   = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
