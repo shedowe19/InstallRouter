@@ -37,6 +37,17 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true `
           -o ./publish
 
+    - name: Digitale Signatur (Self-Signed) anbringen
+      run: |
+        # Erstelle ein temporäres Code-Signing Zertifikat
+        $cert = New-SelfSignedCertificate -Subject "CN=InstallRouter (Shedowe)" -Type CodeSigningCert -CertStoreLocation "Cert:\CurrentUser\My"
+        
+        # Signiere die EXE mit einem öffentlichen Zeitstempel-Server (Timestamping), damit die Signatur gültig bleibt
+        Set-AuthenticodeSignature -FilePath "./publish/InstallRouter.exe" -Certificate $cert -TimestampServer "http://timestamp.digicert.com"
+        
+        # Public Key exportieren (optional zur Installation durch Nutzer)
+        Export-Certificate -Cert $cert -FilePath "./publish/InstallRouter-Zertifikat.cer"
+
     - name: Generate Commit Changelog
       shell: bash
       run: |
@@ -54,6 +65,7 @@ jobs:
       with:
         files: |
           publish/InstallRouter.exe
+          publish/InstallRouter-Zertifikat.cer
         body_path: release_notes.md
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
